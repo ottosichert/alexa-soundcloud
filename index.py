@@ -1,11 +1,9 @@
 from http.server import BaseHTTPRequestHandler
-from io import BytesIO
 import random
-from xml.etree.ElementTree import Element, ElementTree, SubElement
 
 import soundcloud
 
-from utils import parse_authorization
+from utils import parse_authorization, XML
 
 
 class handler(BaseHTTPRequestHandler):
@@ -26,41 +24,35 @@ class handler(BaseHTTPRequestHandler):
         if not username or not client_id:
             return self.do_AUTHHEAD()
 
-        # TODO: move this to utils.py
         client = soundcloud.Client(client_id=client_id)
-
         user_id = client.get('/resolve', url=f'https://soundcloud.com/{username}').id
 
+        # TODO: Add more functionality
         likes = client.get(f'/users/{user_id}/favorites', limit=200)
         random.shuffle(likes)
 
-        root = Element('rss')
-        root.set('version', '2.0')
-        root.set('xmlns:atom', 'http://www.w3.org/2005/Atom')
+        root = (  # NOQA: E124
+            XML('rss',
+                XML('channel',
+                    XML('title', f'{username}\'s likes'),
+                    XML('description', 'Your shuffled SoundCloud favourites as RSS feed!'),
+                    XML('link', f'https://soundcloud.com/{username}/likes'),
+                    XML('atom:link', 'https://alexa-soundcloud.now.sh'),
 
-        channel = SubElement(root, 'channel')
-        SubElement(channel, 'title').text = SubElement(channel, 'description').text = f'{username}\'s likes'
-        SubElement(channel, 'link').text = SubElement(channel, 'atom:link').text = \
-            f'https://soundcloud.com/{username}/likes'
+                    *[XML('item',
+                        XML('title', like.title),
+                        XML('description', like.description),
+                        XML('enclosure', type='audio/mpeg', url=f'{like.stream_url}?client_id={client_id}'),
+                        XML('link', like.permalink_url),
+                        XML('guid', like.id),
+                    ) for like in likes],
+                ),
+                version='2.0',
+                **{'xmlns:atom': 'http://www.w3.org/2005/Atom'},
+            )
+        )
 
-        for like in likes:
-            item = SubElement(channel, 'item')
-            SubElement(item, 'title').text = like.title
-            SubElement(item, 'description').text = like.description
-            url = f'{like.stream_url}?client_id={client_id}'
-
-            enclosure = SubElement(item, 'enclosure')
-            enclosure.set('type', 'audio/mpeg')
-            enclosure.set('url', url)
-            SubElement(item, 'link').text = SubElement(item, 'guid').text = url
-
-        # convert XML tree to string with XML declaratiom
-        document = BytesIO()
-        tree = ElementTree(root)
-        tree.write(document, encoding='utf-8', xml_declaration=True)
-        body = document.getvalue()
-
-        self.respond(body=body)
+        self.respond(body=bytes(root))
 
     def respond(self, status_code=200, headers=None, body=None):
         self.send_response(status_code)
