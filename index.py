@@ -21,11 +21,12 @@ class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         username, client_id = parse_authorization(self.headers['Authorization'])
-        if not username or not client_id:
-            return self.do_AUTHHEAD()
 
-        client = soundcloud.Client(client_id=client_id)
-        user_id = client.get('/resolve', url=f'https://soundcloud.com/{username}').id
+        try:
+            client = soundcloud.Client(client_id=client_id)
+            user_id = client.get('/resolve', url=f'https://soundcloud.com/{username}').id
+        except soundcloud.request.requests.HTTPError:
+            return self.do_AUTHHEAD()
 
         # TODO: Add more functionality
         likes = client.get(f'/users/{user_id}/favorites', limit=200)

@@ -6,7 +6,7 @@ from xml.etree.ElementTree import Element, ElementTree
 TOKEN_PATTERN = re.compile(r'^\s*(?P<protocol>\w+)\s+(?P<token>[^\s]+)\s*$')
 
 
-def parse_authorization(header, username=None, password=None):
+def parse_authorization(header, username='', password=''):
     match = header and TOKEN_PATTERN.match(header)
     if not match:
         return username, password
@@ -19,8 +19,8 @@ def parse_authorization(header, username=None, password=None):
     except (base64.binascii.Error, UnicodeDecodeError, ValueError):
         return username, password
 
-    username = decoded[:separator] or username
-    password = decoded[separator+1:] or password
+    username = decoded[:separator]
+    password = decoded[separator+1:]
 
     return username, password
 
