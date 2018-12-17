@@ -10,9 +10,7 @@ from utils import parse_authorization
 
 class handler(BaseHTTPRequestHandler):
     REALM_NAME = 'SoundCloud'
-    DEFAULT_HEADERS = {
-        'Content-Type': 'application/xml',
-    }
+    DEFAULT_HEADERS = {'Content-Type': 'application/xml'}
 
     def do_HEAD(self):
         self.respond()
@@ -20,11 +18,7 @@ class handler(BaseHTTPRequestHandler):
     def do_AUTHHEAD(self):
         self.respond(
             status_code=401,
-            headers={
-                'WWW-Authenticate': 'Basic realm="{realm_name}"'.format(
-                    realm_name=self.REALM_NAME,
-                ),
-            },
+            headers={'WWW-Authenticate': f'Basic realm="{self.REALM_NAME}"'},
         )
 
     def do_GET(self):
@@ -39,11 +33,9 @@ class handler(BaseHTTPRequestHandler):
         # TODO: move this to utils.py
         client = soundcloud.Client(client_id=client_id)
 
-        user_id = client.get('/resolve', url='https://soundcloud.com/{username}'.format(
-            username=username,
-        )).id
+        user_id = client.get('/resolve', url=f'https://soundcloud.com/{username}').id
 
-        likes = client.get('/users/{user_id}/favorites'.format(user_id=user_id), limit=200)
+        likes = client.get(f'/users/{user_id}/favorites', limit=200)
         random.shuffle(likes)
 
         root = Element('rss')
@@ -51,22 +43,16 @@ class handler(BaseHTTPRequestHandler):
         root.set('xmlns:atom', 'http://www.w3.org/2005/Atom')
 
         channel = SubElement(root, 'channel')
-        SubElement(channel, 'title').text = SubElement(channel, 'description').text = '{username}\'s likes'.format(
-            username=username,
-        )
+        SubElement(channel, 'title').text = SubElement(channel, 'description').text = f'{username}\'s likes'
         SubElement(channel, 'link').text = SubElement(channel, 'atom:link').text = \
-            'https://soundcloud.com/{username}/likes'.format(
-                username=username,
-            )
+            f'https://soundcloud.com/{username}/likes'
 
         for like in likes:
             item = SubElement(channel, 'item')
             SubElement(item, 'title').text = like.title
             SubElement(item, 'description').text = like.description
-            url = '{stream}?client_id={client_id}'.format(
-                stream=like.stream_url,
-                client_id=client_id,
-            )
+            url = f'{like.stream_url}?client_id={client_id}'
+
             enclosure = SubElement(item, 'enclosure')
             enclosure.set('type', 'audio/mpeg')
             enclosure.set('url', url)
