@@ -3,14 +3,27 @@ Making accessing SoundCloud easier for Alexa
 
 This public endpoint allows playing music from SoundCloud via a generated RSS feed.
 
-- Install https://mypodapp.com Alexa skill
+## Installation
+
+Enable any Alexa skill capable of playing music from RSS. I found https://mypodapp.com which has a minimal but ad-free option for users.
+
+## Options
+
+All options can be passed as HTTP Basic authentication `username` in form of a query string, e.g. `foo=1&bar=2`
+
+| Name | Default | Description |
+|------|---------|-------------|
+| **shuffle** | `False` | After retrieving the desired list, randomly shuffle the output |
+
+## Examples
+
 - Create new playlist
 - Add link to playlist
   - Name: `Favourites`
-  - Link: [`https://alexa-soundcloud.now.sh`](https://alexa-soundcloud.now.sh)
+  - Link: `https://alexa-soundcloud.now.sh/resolve?url=https://soundcloud.com/<name>/likes`
   - **Advanced**
-    - Username: `your-soundcloud-name`
-    - Password: `your-client-id`
+    - Username: `shuffle=1`
+    - Password: `<client_id>`
     - Disable resume: `[X]`
     - Save
 - Say `Alexa, play favourites on my pod`

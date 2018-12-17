@@ -1,6 +1,7 @@
 import base64
 from io import BytesIO
 import re
+from urllib.parse import parse_qs
 from xml.etree.ElementTree import Element, ElementTree
 
 TOKEN_PATTERN = re.compile(r'^\s*(?P<protocol>\w+)\s+(?P<token>[^\s]+)\s*$')
@@ -23,6 +24,23 @@ def parse_authorization(header, username='', password=''):
     password = decoded[separator+1:]
 
     return username, password
+
+
+def parse_query(query_string):
+    parsed = {}
+
+    for keys, values in parse_qs(query_string).items():
+        *paths, key = keys.split('.')
+        parent = parsed
+
+        for path in paths:
+            if not isinstance(parent.get(path), dict):
+                parent[path] = {}
+            parent = parent[path]
+
+        parent[key] = values[0] if len(values) == 1 else values
+
+    return parsed
 
 
 class XML:

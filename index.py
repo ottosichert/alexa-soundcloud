@@ -1,14 +1,16 @@
 from http.server import BaseHTTPRequestHandler
 import random
+from urllib.parse import urlparse
 
 import soundcloud
 
-from utils import parse_authorization, XML
+from utils import parse_authorization, parse_query, XML
 
 
 class handler(BaseHTTPRequestHandler):
     REALM_NAME = 'SoundCloud'
     DEFAULT_HEADERS = {'Content-Type': 'application/xml'}
+    DEFAULT_PARAMS = {'limit': 200}
 
     def do_HEAD(self):
         self.respond()
@@ -20,33 +22,36 @@ class handler(BaseHTTPRequestHandler):
         )
 
     def do_GET(self):
-        username, client_id = parse_authorization(self.headers['Authorization'])
+        options_query, client_id = parse_authorization(self.headers['Authorization'])
+        options = parse_query(options_query)
+        location = urlparse(self.path)
+        api_params = parse_query(location.query)
+        params = {**self.DEFAULT_PARAMS, **api_params}
 
         try:
             client = soundcloud.Client(client_id=client_id)
-            user_id = client.get('/resolve', url=f'https://soundcloud.com/{username}').id
+            result = client.get(location.path, **params)
         except soundcloud.request.requests.HTTPError:
             return self.do_AUTHHEAD()
 
-        # TODO: Add more functionality
-        likes = client.get(f'/users/{user_id}/favorites', limit=200)
-        random.shuffle(likes)
+        if options.get('shuffle'):
+            random.shuffle(result)
 
         root = (  # NOQA: E124
             XML('rss',
                 XML('channel',
-                    XML('title', f'{username}\'s likes'),
-                    XML('description', 'Your shuffled SoundCloud favourites as RSS feed!'),
-                    XML('link', f'https://soundcloud.com/{username}/likes'),
-                    XML('atom:link', 'https://alexa-soundcloud.now.sh'),
+                    XML('title', f'Results for {location.path}'),
+                    XML('description', f'With parameters "{params}"'),
+                    XML('link', f'https://{client.host}{self.path}'),
+                    XML('atom:link', 'https://alexa-soundcloud.now.sh{self.path}'),
 
                     *[XML('item',
-                        XML('title', like.title),
-                        XML('description', like.description),
-                        XML('enclosure', type='audio/mpeg', url=f'{like.stream_url}?client_id={client_id}'),
-                        XML('link', like.permalink_url),
-                        XML('guid', like.id),
-                    ) for like in likes],
+                        XML('title', item.title),
+                        XML('description', item.description),
+                        XML('enclosure', type='audio/mpeg', url=f'{item.stream_url}?client_id={client_id}'),
+                        XML('link', item.permalink_url),
+                        XML('guid', item.id),
+                    ) for item in result],
                 ),
                 version='2.0',
                 **{'xmlns:atom': 'http://www.w3.org/2005/Atom'},
