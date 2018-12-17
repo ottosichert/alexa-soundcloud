@@ -9,11 +9,11 @@ Enable any Alexa skill capable of playing music from RSS. I found https://mypoda
 
 ## Options
 
-All options can be passed as HTTP Basic authentication `username` in form of a query string, e.g. `foo=1&bar=2`
+All options can be passed as HTTP Basic authentication `username` in form of a query string, e.g. `foo=1&bar`
 
 | Name | Default | Description |
 |------|---------|-------------|
-| **shuffle** | `False` | After retrieving the desired list, randomly shuffle the output |
+| **shuffle** | `None` | Set to any value to randomly shuffle the output after retrieving the desired list |
 
 ## Examples
 
@@ -22,11 +22,11 @@ All options can be passed as HTTP Basic authentication `username` in form of a q
   - Name: `Favourites`
   - Link: `https://alexa-soundcloud.now.sh/resolve?url=https://soundcloud.com/<name>/likes`
   - **Advanced**
-    - Username: `shuffle=1`
+    - Username: `shuffle`
     - Password: `<client_id>`
     - Disable resume: `[X]`
     - Save
-- Say `Alexa, play favourites on my pod`
+- Say `Alexa, play Favourites on MyPod`
 - Enjoy the finest music in the world, i.e. your favourites
 
 _Note_: To get your SoundCloud `client_id` go to https://soundcloud.com/stream and check the network tab of your developer tools for any requests containing the `client_id` as HTTP GET query parameter.

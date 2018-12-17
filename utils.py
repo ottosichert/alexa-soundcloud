@@ -28,9 +28,10 @@ def parse_authorization(header, username='', password=''):
 
 def parse_query(query_string):
     parsed = {}
+    query = parse_qs(query_string, keep_blank_values=True)
 
-    for keys, values in parse_qs(query_string).items():
-        *paths, key = keys.split('.')
+    for keys, values in query.items():
+        *paths, key = filter(bool, keys.split('.'))
         parent = parsed
 
         for path in paths:
@@ -38,7 +39,7 @@ def parse_query(query_string):
                 parent[path] = {}
             parent = parent[path]
 
-        parent[key] = values[0] if len(values) == 1 else values
+        parent[key] = values[0] or True if len(values) == 1 else values
 
     return parsed
 
