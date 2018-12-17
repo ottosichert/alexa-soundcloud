@@ -16,7 +16,7 @@ class handler(BaseHTTPRequestHandler):
     def do_AUTHHEAD(self):
         self.respond(
             status_code=401,
-            headers={'WWW-Authenticate': f'Basic realm="{self.REALM_NAME}"'},
+            **{'WWW-Authenticate': f'Basic realm="{self.REALM_NAME}"'},
         )
 
     def do_GET(self):
@@ -55,13 +55,10 @@ class handler(BaseHTTPRequestHandler):
 
         self.respond(body=bytes(root))
 
-    def respond(self, status_code=200, headers=None, body=None):
+    def respond(self, status_code=200, body=None, **headers):
         self.send_response(status_code)
 
-        all_headers = self.DEFAULT_HEADERS.copy()
-        if headers:
-            all_headers.update(headers)
-        for header, value in all_headers.items():
+        for header, value in {**self.DEFAULT_HEADERS, **headers}.items():
             self.send_header(header, value)
         self.end_headers()
 
