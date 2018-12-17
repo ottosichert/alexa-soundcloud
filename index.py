@@ -22,11 +22,7 @@ class handler(BaseHTTPRequestHandler):
         )
 
     def do_GET(self):
-        authorization = self.headers['Authorization']
-        if authorization is None:
-            return self.do_AUTHHEAD()
-
-        username, client_id = parse_authorization(authorization)
+        username, client_id = parse_authorization(self.headers['Authorization'])
         if not username or not client_id:
             return self.do_AUTHHEAD()
 
