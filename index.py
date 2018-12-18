@@ -1,7 +1,10 @@
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler
 import random
 from urllib.parse import urlparse
 
+from isodate import parse_duration, ISO8601Error
+from requests import HTTPError
 import soundcloud
 
 from utils import parse_authorization, parse_query, XML
@@ -11,30 +14,57 @@ class handler(BaseHTTPRequestHandler):
     REALM_NAME = 'SoundCloud'
     DEFAULT_HEADERS = {'Content-Type': 'application/xml'}
     DEFAULT_PARAMS = {'limit': 200}
+    DEFAULT_OPTIONS = {
+        'shuffle': False,
+        'relative': {},
+    }
 
     def do_HEAD(self):
         self.respond()
 
     def do_AUTHHEAD(self):
-        self.respond(
+        self.yell(
             status_code=401,
             **{'WWW-Authenticate': f'Basic realm="{self.REALM_NAME}"'},
         )
 
     def do_GET(self):
-        options_query, client_id = parse_authorization(self.headers['Authorization'])
-        options = parse_query(options_query)
         location = urlparse(self.path)
-        api_params = parse_query(location.query)
-        params = {**self.DEFAULT_PARAMS, **api_params}
+        options_query, client_id = parse_authorization(self.headers['Authorization'])
+        options = {**self.DEFAULT_OPTIONS, **parse_query(options_query, depth=1)}
+        params = {**self.DEFAULT_PARAMS, **parse_query(location.query)}
+
+        relative = options['relative']
+        if not isinstance(relative, dict):
+            return self.yell(body=b'`relative` option must have nested keys')
+
+        for keys, duration in relative.items():
+            *paths, key = filter(bool, keys.split('.'))
+            parent = params
+
+            for path in paths:
+                if not isinstance(parent.get(path), dict):
+                    parent[path] = {}
+                parent = parent[path]
+
+            try:
+                absolute = datetime.now() - parse_duration(duration)
+            except ISO8601Error:
+                return self.yell(
+                    body=f'`relative` duration "{duration}" of key "{keys}" must conform to ISO 8601'.encode()
+                )
+            parent[key] = absolute.strftime('%Y-%m-%d %H:%M:%S')
 
         try:
             client = soundcloud.Client(client_id=client_id)
             result = client.get(location.path, **params)
-        except soundcloud.request.requests.HTTPError:
-            return self.do_AUTHHEAD()
+        except HTTPError as error:
+            status_code = error.response.status_code
+            if status_code == 401:
+                return self.do_AUTHHEAD()
+            return self.yell(status_code=status_code, body=error.response.content)
 
-        if options.get('shuffle'):
+        if options['shuffle']:
             random.shuffle(result)
 
         root = (  # NOQA: E124
@@ -69,3 +99,7 @@ class handler(BaseHTTPRequestHandler):
 
         if body:
             self.wfile.write(body)
+
+    def yell(self, status_code=400, **kwargs):
+        kwargs.setdefault('Content-Type', 'text/plain')
+        self.respond(status_code=status_code, **kwargs)

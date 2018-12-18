@@ -26,12 +26,12 @@ def parse_authorization(header, username='', password=''):
     return username, password
 
 
-def parse_query(query_string):
+def parse_query(query_string, depth=-1):
     parsed = {}
     query = parse_qs(query_string, keep_blank_values=True)
 
     for keys, values in query.items():
-        *paths, key = filter(bool, keys.split('.'))
+        *paths, key = filter(bool, keys.split('.', maxsplit=depth))
         parent = parsed
 
         for path in paths:
