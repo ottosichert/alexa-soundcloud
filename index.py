@@ -26,6 +26,9 @@ class handler(BaseHTTPRequestHandler):
         self.yell(
             status_code=401,
             **{'WWW-Authenticate': f'Basic realm="{self.REALM_NAME}"'},
+            body=b'Please provide valid `options` as username and a SoundClound `client_id` as password.\n'
+            b'The URL path will be appended to the SoundCloud API call.\n\n'
+            b'For more information see https://github.com/ottosichert/alexa-soundcloud'
         )
 
     def do_GET(self):

@@ -1,6 +1,6 @@
 # alexa-soundcloud
 
-This public endpoint allows playing music from SoundCloud via a generated RSS feed. This endpoint acts as an convenience wrapper around SoundCloud's public API linked below.
+This public endpoint allows playing music from SoundCloud via a generated RSS feed. This endpoint acts as an convenience wrapper around SoundCloud's public API linked below. It works by calling the same URL path after `https://alexa-soundcloud.now.sh` appended to `https://api.soundcloud.com`.
 
 ## Installation
 
