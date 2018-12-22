@@ -59,3 +59,8 @@ class XML:
         tree = ElementTree(self.element)
         tree.write(document, encoding='utf-8', xml_declaration=True)
         return document.getvalue()
+
+
+class BytesMixin:
+    def __bytes__(self):
+        return str(self).encode()
