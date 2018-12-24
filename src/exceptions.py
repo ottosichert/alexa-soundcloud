@@ -1,4 +1,4 @@
-from utils import BytesMixin
+from .utils import BytesMixin
 
 
 class ExecutionException(Exception):

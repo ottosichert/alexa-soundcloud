@@ -1,7 +1,7 @@
 from http.server import BaseHTTPRequestHandler
 
-from api import API
-from exceptions import ExecutionException, OptionsException, PermissionsException
+from .api import API
+from .exceptions import ExecutionException, OptionsException, PermissionsException
 
 
 class handler(BaseHTTPRequestHandler):

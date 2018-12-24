@@ -7,8 +7,8 @@ from isodate import parse_duration, ISO8601Error
 from requests import HTTPError
 import soundcloud
 
-from exceptions import ExecutionException, OptionsException, PermissionsException
-from utils import parse_authorization, parse_query, XML
+from .exceptions import ExecutionException, OptionsException, PermissionsException
+from .utils import parse_authorization, parse_query, XML
 
 
 class API:

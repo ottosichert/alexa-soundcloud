@@ -3,9 +3,9 @@
   "alias": "alexa-soundcloud.now.sh",
   "version": 2,
   "builds": [
-    { "src": "index.py", "use": "@now/python" }
+    { "src": "src/index.py", "use": "@now/python" }
   ],
   "routes": [
-    { "src": ".*", "dest": "/index.py" }
+    { "src": ".*", "dest": "src/index.py" }
   ]
 }
