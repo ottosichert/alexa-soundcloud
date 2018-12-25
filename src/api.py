@@ -1,14 +1,11 @@
-from copy import deepcopy
-from datetime import datetime
 import random
 from urllib.parse import urlparse
 
-from isodate import parse_duration, ISO8601Error
 from requests import HTTPError
 import soundcloud
 
 from .exceptions import ExecutionException, OptionsException, PermissionsException
-from .utils import parse_authorization, parse_query, XML
+from .utils import parse_authorization, parse_query, RELATIVE, traverse_paths, XML
 
 
 class API:
@@ -24,46 +21,26 @@ class API:
         'relative': {},
     }
 
-    def __init__(self, path, headers):
+    @classmethod
+    def get_configuration(cls, path, headers):
         location = urlparse(path)
         options_query, client_id = parse_authorization(headers['Authorization'])
 
-        self.options = self.get_options(options_query)
-        self.params = self.get_params(location.query, client_id=client_id)
+        options = {**cls.DEFAULT_OPTIONS, **parse_query(options_query, depth=1)}
+        params = {**cls.DEFAULT_PARAMS, **parse_query(location.query), 'client_id': client_id}
+        return options, params
 
-    def get_options(self, query, defaults=DEFAULT_OPTIONS, **options):
-        return {**defaults, **parse_query(query, depth=1), **options}
-
-    def get_params(self, query, defaults=DEFAULT_PARAMS, **params):
-        return {**defaults, **parse_query(query), **params}
-
-    def preprocess_params(self, params, **options):
-        processed = deepcopy(params)
-
+    @classmethod
+    def preprocess_params(cls, params, **options):
         relative = options['relative']
         if not isinstance(relative, dict):
             raise OptionsException('`relative` option must have nested keys')
 
-        for keys, duration in relative.items():
-            *paths, key = filter(bool, keys.split('.'))
-            parent = processed
-
-            for path in paths:
-                if not isinstance(parent.get(path), dict):
-                    parent[path] = {}
-                parent = parent[path]
-
-            try:
-                absolute = datetime.now() - parse_duration(duration)
-            except ISO8601Error:
-                raise OptionsException(
-                    f'`relative` duration "{duration}" of key "{keys}" must conform to ISO 8601'
-                )
-            parent[key] = absolute.strftime('%Y-%m-%d %H:%M:%S')
-
+        processed = traverse_paths(params, relative, processing=RELATIVE)
         return {**params, **processed}
 
-    def execute_request(self, path, client_id=None, **params):
+    @classmethod
+    def execute_request(cls, path, client_id=None, **params):
         try:
             client = soundcloud.Client(client_id=client_id)
             return client.get(path, **params)
@@ -77,13 +54,15 @@ class API:
 
             raise ExecutionException(status_code, bytes_message)
 
-    def postprocess_result(self, result, **options):
+    @classmethod
+    def postprocess_result(cls, result, **options):
         if options['shuffle']:
             result = random.sample(result, len(result))
 
         return result
 
-    def generate_response(self, result, path, *, client_id, **params):
+    @classmethod
+    def generate_response(cls, result, path, *, client_id, **params):
         try:
             return (  # NOQA: E124
                 XML('rss',
@@ -91,7 +70,7 @@ class API:
                         XML('title', f'Results for {path}'),
                         XML('description', f'With parameters "{params}"'),
                         XML('link', f'https://{soundcloud.Client.host}{path}'),
-                        XML('atom:link', f'{self.HOST}{path}'),
+                        XML('atom:link', f'{cls.HOST}{path}'),
 
                         *[XML('item',
                             XML('title', item.title),

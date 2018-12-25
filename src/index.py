@@ -19,15 +19,13 @@ class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path
-        api = API(path, self.headers)
-        options = api.options
-        params = api.params
+        options, params = API.get_configuration(path, self.headers)
 
         try:
-            processed_params = api.preprocess_params(params, **options)
-            result = api.execute_request(path, **processed_params)
-            result = api.postprocess_result(result, **options)
-            response = api.generate_response(result, path, **processed_params)
+            processed_params = API.preprocess_params(params, **options)
+            result = API.execute_request(path, **processed_params)
+            processed_result = API.postprocess_result(result, **options)
+            response = API.generate_response(processed_result, path, **processed_params)
 
         except OptionsException as options_exception:
             return self.yell(body=bytes(options_exception))

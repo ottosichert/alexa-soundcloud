@@ -1,4 +1,6 @@
-from .utils import BytesMixin
+class BytesMixin:
+    def __bytes__(self):
+        return str(self).encode()
 
 
 class ExecutionException(Exception):

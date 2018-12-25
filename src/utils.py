@@ -1,14 +1,20 @@
 import base64
+from copy import deepcopy
+from datetime import datetime
 from io import BytesIO
 import re
 from urllib.parse import parse_qs
 from xml.etree.ElementTree import Element, ElementTree
 
-TOKEN_PATTERN = re.compile(r'^\s*(?P<protocol>\w+)\s+(?P<token>[^\s]+)\s*$')
+from isodate import parse_duration, ISO8601Error
+
+from .exceptions import OptionsException
+
+AUTHORIZATION_PATTERN = re.compile(r'^\s*(?P<protocol>\w+)\s+(?P<token>[^\s]+)\s*$')
 
 
 def parse_authorization(header, username='', password=''):
-    match = header and TOKEN_PATTERN.match(header)
+    match = header and AUTHORIZATION_PATTERN.match(header)
     if not match:
         return username, password
 
@@ -26,22 +32,40 @@ def parse_authorization(header, username='', password=''):
     return username, password
 
 
-def parse_query(query_string, depth=-1):
-    parsed = {}
-    query = parse_qs(query_string, keep_blank_values=True)
+RELATIVE = 'RELATIVE'
+LAST_ITEM = 'LAST_ITEM'
 
-    for keys, values in query.items():
-        *paths, key = filter(bool, keys.split('.', maxsplit=depth))
-        parent = parsed
+
+def traverse_paths(defaults, pairs, depth=-1, processing=LAST_ITEM):
+    processed = deepcopy(defaults)
+
+    for keys, value in pairs.items():
+        *paths, key = keys.split('.', maxsplit=depth)
+        parent = processed
 
         for path in paths:
             if not isinstance(parent.get(path), dict):
                 parent[path] = {}
             parent = parent[path]
 
-        parent[key] = values[0] or True if len(values) == 1 else values
+        if processing == RELATIVE:
+            try:
+                absolute = datetime.now() - parse_duration(value)
+            except ISO8601Error:
+                raise OptionsException(
+                    f'`relative` duration "{value}" of key "{keys}" must conform to ISO 8601'
+                )
+            parent[key] = absolute.strftime('%Y-%m-%d %H:%M:%S')
 
-    return parsed
+        elif processing == LAST_ITEM:
+            parent[key] = value[-1] or True
+
+    return processed
+
+
+def parse_query(query_string, depth=-1):
+    query = parse_qs(query_string, keep_blank_values=True)
+    return traverse_paths({}, query, depth=depth, processing=LAST_ITEM)
 
 
 class XML:
@@ -59,8 +83,3 @@ class XML:
         tree = ElementTree(self.element)
         tree.write(document, encoding='utf-8', xml_declaration=True)
         return document.getvalue()
-
-
-class BytesMixin:
-    def __bytes__(self):
-        return str(self).encode()
