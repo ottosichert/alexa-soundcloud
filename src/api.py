@@ -11,7 +11,7 @@ from .utils import parse_authorization, parse_query, RELATIVE, traverse_paths, X
 class API:
     HOST = 'https://alexa-soundcloud.now.sh'
     REALM_NAME = 'SoundCloud'
-    DEFAULT_HEADERS = {'Content-Type': 'application/xml'}
+    DEFAULT_HEADERS = {'Content-Type': 'text/plain'}
     DEFAULT_PARAMS = {
         'limit': 200,
         'client_id': 'MISSING',
