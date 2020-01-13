@@ -4,7 +4,18 @@ import re
 from urllib.parse import parse_qs
 from xml.etree.ElementTree import Element, ElementTree
 
+HOST = 'https://alexa-soundcloud.now.sh'
+STREAM_URL = f'{HOST}/stream'
 TOKEN_PATTERN = re.compile(r'^\s*(?P<protocol>\w+)\s+(?P<token>[^\s]+)\s*$')
+
+
+def get_stream_url(item, client_id):
+    # As documented in https://developers.soundcloud.com/docs/api/reference#tracks it should be item.stream_url
+    # however the API sometimes throws 401, using stream.py proxy instead
+
+    # return f'{item.stream_url}?client_id={client_id}'
+
+    return f'{STREAM_URL}/{item.id}?client_id={client_id}'
 
 
 def parse_authorization(header, username='', password=''):

@@ -8,11 +8,11 @@ from requests import HTTPError
 import soundcloud
 
 from exceptions import ExecutionException, OptionsException, PermissionsException
-from utils import parse_authorization, parse_query, XML
+from utils import get_stream_url, parse_authorization, parse_query, HOST, XML
 
 
 class API:
-    HOST = 'https://alexa-soundcloud.now.sh'
+    HOST = HOST
     REALM_NAME = 'SoundCloud'
     DEFAULT_HEADERS = {'Content-Type': 'application/xml'}
     DEFAULT_PARAMS = {
@@ -96,7 +96,7 @@ class API:
                         *[XML('item',
                             XML('title', item.title),
                             XML('description', item.description),
-                            XML('enclosure', type='audio/mpeg', url=f'{item.stream_url}?client_id={client_id}'),
+                            XML('enclosure', type='audio/mpeg', url=get_stream_url(item, client_id)),
                             XML('link', item.permalink_url),
                             XML('guid', item.id),
                         ) for item in result],

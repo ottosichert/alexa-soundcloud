@@ -1,11 +1,12 @@
 {
   "name": "alexa-soundcloud",
-  "alias": "alexa-soundcloud.now.sh",
   "version": 2,
   "builds": [
-    { "src": "index.py", "use": "@now/python" }
+    { "src": "index.py", "use": "@now/python" },
+    { "src": "stream.py", "use": "@now/python" }
   ],
   "routes": [
+    { "src": "/stream/.*", "dest": "/stream.py" },
     { "src": ".*", "dest": "/index.py" }
   ]
 }
